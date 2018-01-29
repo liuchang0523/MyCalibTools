@@ -42,6 +42,15 @@
     <ClCompile Include="GeneratedFiles\qrc_MyCalibTools.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="MyImageWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\moc_MyImageWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\qrc_MyImageWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="MyCalibTools.h">
@@ -53,9 +62,21 @@
     <CustomBuild Include="MyCalibTools.qrc">
       <Filter>Resource Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="MyImageWidget.h">
+      <Filter>Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="MyImageWidget.qrc">
+      <Filter>Resource Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="MyImageWidget.ui">
+      <Filter>Form Files</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_MyCalibTools.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_MyImageWidget.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
