@@ -16,6 +16,7 @@ public:
 	void on_actionOpen_triggered();
 	void on_actionOpenList_triggered();
 	void on_actionCalibration_triggered();
+	void on_actionStereoCalibrate_triggered();
 
 private:
 	Ui::MyCalibToolsClass ui;
@@ -29,6 +30,14 @@ private:
 	//圆心坐标
 	std::vector<std::vector<cv::Point2f>> m_points_on_image_;
 	std::vector<std::vector<cv::Point3f>> m_points_on_world_;
+
+
+	//标定参数
+	cv::Mat m_matrix_;
+	cv::Mat m_distortion_;
+	std::vector<cv::Mat> m_R_;
+	std::vector<cv::Mat> m_T_;
+	std::vector<double> m_errors_;
 
 private:
 	//Mat格式转QImage格式

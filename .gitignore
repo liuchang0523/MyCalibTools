@@ -259,3 +259,16 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+/MyCalibTools/标靶图样
+/MyCalibTools/8.bmp
+/MyCalibTools/0.bmp
+/MyCalibTools/1.bmp
+/MyCalibTools/2.bmp
+/MyCalibTools/3.bmp
+/MyCalibTools/4.bmp
+/MyCalibTools/5.bmp
+/MyCalibTools/6.bmp
+/MyCalibTools/7.bmp
+/MyCalibTools/draw.bmp
+/MyCalibTools/canny.bmp
+/MyCalibTools/center.bmp

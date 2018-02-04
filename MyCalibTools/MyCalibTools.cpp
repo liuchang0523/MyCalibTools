@@ -236,6 +236,11 @@ void MyCalibTools::on_actionOpenList_triggered()
 
 
 	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+	if (m_points_on_image_.size() > 0)
+	{
+		m_points_on_image_.clear();
+		m_points_on_world_.clear();
+	}
 	for (int k = 0; k < m_image_list_.size(); ++k)
 	{
 
@@ -407,30 +412,69 @@ void MyCalibTools::on_actionOpenList_triggered()
 	qDebug() << "finished";
 }
 
-
 void MyCalibTools::on_actionCalibration_triggered()
 {
 	if (m_points_on_image_.size() < 5)
 	{
 		return;
 	}
-	cv::Mat matrix = cv::Mat(3, 3, CV_32FC1, cv::Scalar::all(0));
-	matrix.at<float>(0, 0) = 1;
-	//matrix.at<float>(0, 2) = 0;
-	matrix.at<float>(1, 1) = 1;
-	//matrix.at<float>(1, 2) = 0;
-	matrix.at<float>(2, 2) = 1;
+	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 
-
-	cv::Mat distortion = cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0));
-	std::vector<cv::Mat> R;
-	std::vector<cv::Mat> T;
+	m_matrix_ = cv::Mat(3, 3, CV_32FC1, cv::Scalar::all(0));
+	m_distortion_ = cv::Mat(1, 5, CV_32FC1, cv::Scalar::all(0));
 	double e = cv::calibrateCamera(m_points_on_world_, m_points_on_image_,
-		m_image_source_.size(), matrix, distortion, R, T,
-		0);
+		m_image_source_.size(), m_matrix_, m_distortion_, m_R_, m_T_,
+		cv::noArray(), cv::noArray(), m_errors_, 0);
 	qDebug() << QStringLiteral("标定完成！");
 	qDebug() << QStringLiteral("重投影误差为%1").arg(e);
-	std::cout << matrix << std::endl;
+	std::cout << "相机内参矩阵：" << std::endl;
+	std::cout << m_matrix_ << std::endl;
+	std::cout << "畸变系数：" << std::endl;
+	std::cout << m_distortion_ << std::endl;
+	for (int i = 0; i < m_errors_.size(); ++i)
+	{
+		std::cout << "第" << i + 1 << "副图像的重投影误差为:" << m_errors_[i] << std::endl;
+	}
+	QApplication::restoreOverrideCursor();
+}
+
+
+void MyCalibTools::on_actionStereoCalibrate_triggered()
+{
+	std::vector<std::vector<cv::Point2f>> points_on_image_1;
+	std::vector<std::vector<cv::Point2f>> points_on_image_2;
+	std::vector<std::vector<cv::Point3f>> points_on_world;
+	on_actionOpenList_triggered();
+	points_on_image_1 = m_points_on_image_;
+	//左相机单目标定
+	on_actionCalibration_triggered();
+	cv::Mat matrix_1 = m_matrix_;
+	cv::Mat dist_1 = m_distortion_;
+
+	on_actionOpenList_triggered();
+	points_on_image_2 = m_points_on_image_;
+	points_on_world = m_points_on_world_;
+	on_actionCalibration_triggered();
+	if (points_on_image_1.size() != points_on_image_2.size())
+	{
+		QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("图片数目不相等！"));
+		return;
+	}
+
+	cv::Mat matrix_2 = m_matrix_;
+	cv::Mat dist_2 = m_distortion_;
+
+	cv::Mat R, T, E, F;
+	std::vector<double> errors;
+	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+	double e = cv::stereoCalibrate(points_on_world, points_on_image_1, points_on_image_2,
+		matrix_1, dist_1, matrix_2, dist_2, m_image_source_.size(),
+		R, T, E, F, 0);
+	std::cout << std::endl << std::endl;
+	qDebug() << QStringLiteral("双目标定的重投影误差为%1").arg(e);
+	std::cout << "R:" << std::endl << R << std::endl;
+	std::cout << "T:" << std::endl << T << std::endl;
+	QApplication::restoreOverrideCursor();
 }
 
 QImage MyCalibTools::Mat2QImage(const cv::Mat& mat)
@@ -561,7 +605,7 @@ bool MyCalibTools::isCircle(const std::vector<cv::Point> &contours, cv::Point2f 
 		}
 		else
 		{
-			qDebug() << QStringLiteral("大于阈值offset：%1").arg(offset);
+			//qDebug() << QStringLiteral("大于阈值offset：%1").arg(offset);
 		}
 	}
 	return false;

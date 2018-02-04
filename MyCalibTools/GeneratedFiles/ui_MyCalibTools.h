@@ -28,6 +28,7 @@ public:
     QAction *actionOpen;
     QAction *actionOpenList;
     QAction *actionCalibration;
+    QAction *actionStereoCalibrate;
     QWidget *centralWidget;
     QGridLayout *gridLayout;
     MyImageWidget *widget;
@@ -44,6 +45,8 @@ public:
         actionOpenList->setObjectName(QStringLiteral("actionOpenList"));
         actionCalibration = new QAction(MyCalibToolsClass);
         actionCalibration->setObjectName(QStringLiteral("actionCalibration"));
+        actionStereoCalibrate = new QAction(MyCalibToolsClass);
+        actionStereoCalibrate->setObjectName(QStringLiteral("actionStereoCalibrate"));
         centralWidget = new QWidget(MyCalibToolsClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         gridLayout = new QGridLayout(centralWidget);
@@ -64,6 +67,7 @@ public:
         mainToolBar->addAction(actionOpen);
         mainToolBar->addAction(actionOpenList);
         mainToolBar->addAction(actionCalibration);
+        mainToolBar->addAction(actionStereoCalibrate);
 
         retranslateUi(MyCalibToolsClass);
 
@@ -76,6 +80,7 @@ public:
         actionOpen->setText(QApplication::translate("MyCalibToolsClass", "Open", Q_NULLPTR));
         actionOpenList->setText(QApplication::translate("MyCalibToolsClass", "OpenList", Q_NULLPTR));
         actionCalibration->setText(QApplication::translate("MyCalibToolsClass", "Calibration", Q_NULLPTR));
+        actionStereoCalibrate->setText(QApplication::translate("MyCalibToolsClass", "StereoCalibrate", Q_NULLPTR));
     } // retranslateUi
 
 };

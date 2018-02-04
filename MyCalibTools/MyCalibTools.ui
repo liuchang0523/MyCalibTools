@@ -42,6 +42,7 @@
    <addaction name="actionOpen"/>
    <addaction name="actionOpenList"/>
    <addaction name="actionCalibration"/>
+   <addaction name="actionStereoCalibrate"/>
   </widget>
   <action name="actionOpen">
    <property name="text">
@@ -56,6 +57,11 @@
   <action name="actionCalibration">
    <property name="text">
     <string>Calibration</string>
+   </property>
+  </action>
+  <action name="actionStereoCalibrate">
+   <property name="text">
+    <string>StereoCalibrate</string>
    </property>
   </action>
  </widget>
