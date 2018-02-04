@@ -26,6 +26,8 @@ class Ui_MyCalibToolsClass
 {
 public:
     QAction *actionOpen;
+    QAction *actionOpenList;
+    QAction *actionCalibration;
     QWidget *centralWidget;
     QGridLayout *gridLayout;
     MyImageWidget *widget;
@@ -35,15 +37,20 @@ public:
     {
         if (MyCalibToolsClass->objectName().isEmpty())
             MyCalibToolsClass->setObjectName(QStringLiteral("MyCalibToolsClass"));
-        MyCalibToolsClass->resize(1304, 1072);
+        MyCalibToolsClass->resize(1280, 1024);
         actionOpen = new QAction(MyCalibToolsClass);
         actionOpen->setObjectName(QStringLiteral("actionOpen"));
+        actionOpenList = new QAction(MyCalibToolsClass);
+        actionOpenList->setObjectName(QStringLiteral("actionOpenList"));
+        actionCalibration = new QAction(MyCalibToolsClass);
+        actionCalibration->setObjectName(QStringLiteral("actionCalibration"));
         centralWidget = new QWidget(MyCalibToolsClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         gridLayout = new QGridLayout(centralWidget);
         gridLayout->setSpacing(6);
         gridLayout->setContentsMargins(11, 11, 11, 11);
         gridLayout->setObjectName(QStringLiteral("gridLayout"));
+        gridLayout->setContentsMargins(0, 0, 0, 0);
         widget = new MyImageWidget(centralWidget);
         widget->setObjectName(QStringLiteral("widget"));
 
@@ -55,6 +62,8 @@ public:
         MyCalibToolsClass->addToolBar(Qt::TopToolBarArea, mainToolBar);
 
         mainToolBar->addAction(actionOpen);
+        mainToolBar->addAction(actionOpenList);
+        mainToolBar->addAction(actionCalibration);
 
         retranslateUi(MyCalibToolsClass);
 
@@ -65,6 +74,8 @@ public:
     {
         MyCalibToolsClass->setWindowTitle(QApplication::translate("MyCalibToolsClass", "MyCalibTools", Q_NULLPTR));
         actionOpen->setText(QApplication::translate("MyCalibToolsClass", "Open", Q_NULLPTR));
+        actionOpenList->setText(QApplication::translate("MyCalibToolsClass", "OpenList", Q_NULLPTR));
+        actionCalibration->setText(QApplication::translate("MyCalibToolsClass", "Calibration", Q_NULLPTR));
     } // retranslateUi
 
 };
