@@ -3,6 +3,8 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QDebug>
+#include <QtCore\qxmlstream.h>
+#include <QtCore\QProcess>
 
 MyCalibTools::MyCalibTools(QWidget *parent)
 	: QMainWindow(parent)
@@ -469,12 +471,41 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 	double e = cv::stereoCalibrate(points_on_world, points_on_image_1, points_on_image_2,
 		matrix_1, dist_1, matrix_2, dist_2, m_image_source_.size(),
-		R, T, E, F, 0);
+		R, T, E, F, CV_CALIB_FIX_INTRINSIC);//使用单目标定的内参和畸变
 	std::cout << std::endl << std::endl;
 	qDebug() << QStringLiteral("双目标定的重投影误差为%1").arg(e);
 	std::cout << "R:" << std::endl << R << std::endl;
 	std::cout << "T:" << std::endl << T << std::endl;
+
+	//////////////////////////////////////////////////////////////////////////
+	//写入xml
+	qDebug() << Mat2QString(R);
+	QFile file("StereoCalibrateResult.xml");
+	if (!file.open(QFile::WriteOnly | QFile::Text))
+	{
+		qDebug() << "Error: cannot open file";
+		return;
+	}
+	QXmlStreamWriter stream(&file);
+	stream.setAutoFormatting(true);
+	stream.writeStartDocument();
+	stream.writeTextElement("matrix_1", Mat2QString(matrix_1));
+	stream.writeTextElement("distortion_1", Mat2QString(dist_1));
+	stream.writeTextElement("matrix_2", Mat2QString(matrix_2));
+	stream.writeTextElement("distortion_2", Mat2QString(dist_2));
+	stream.writeTextElement("R", Mat2QString(R));
+	stream.writeTextElement("T", Mat2QString(T));
+	stream.writeTextElement("e", QString::number(e, 'g', 10));
+	stream.writeEndElement();
+	file.close();
+
 	QApplication::restoreOverrideCursor();
+}
+
+
+void MyCalibTools::on_actionXML_triggered()
+{
+	QProcess::execute("explorer StereoCalibrateResult.xml");
 }
 
 QImage MyCalibTools::Mat2QImage(const cv::Mat& mat)
@@ -522,6 +553,25 @@ QImage MyCalibTools::Mat2QImage(const cv::Mat& mat)
 		qDebug() << "ERROR: Mat could not be converted to QImage.";
 		return QImage();
 	}
+}
+
+
+QString MyCalibTools::Mat2QString(const cv::Mat& mat)
+{
+	QString str = "\n";
+	for (int i = 0; i < mat.rows; ++i)
+	{
+		for (int j = 0; j < mat.cols; ++j)
+		{
+			str += QString::number(mat.at<double>(i, j), 'f', 10);//10位有效数字
+			if (j != mat.cols - 1)
+			{
+				str += " ";
+			}
+		}
+		str += "\n";
+	}
+	return str;
 }
 
 double MyCalibTools::GetDistance(const cv::Point2f &a, const cv::Point2f &b)

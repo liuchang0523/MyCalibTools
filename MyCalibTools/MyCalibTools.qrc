@@ -1,4 +1,10 @@
 <RCC>
-    <qresource prefix="MyCalibTools">
-    </qresource>
+  <qresource prefix="MyCalibTools">
+    <file>resource/xml-icon.png</file>
+    <file>resource/letter uppercase S.ico</file>
+    <file>resource/letter uppercase C.ico</file>
+    <file>resource/210738-200.png</file>
+    <file>resource/Hopstarter-Scrap-Folder-Open.ico</file>
+    <file>resource/Hopstarter-Scrap-My-Documents.ico</file>
+  </qresource>
 </RCC>

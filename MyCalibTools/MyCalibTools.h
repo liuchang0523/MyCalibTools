@@ -17,7 +17,7 @@ public:
 	void on_actionOpenList_triggered();
 	void on_actionCalibration_triggered();
 	void on_actionStereoCalibrate_triggered();
-
+	void on_actionXML_triggered();
 private:
 	Ui::MyCalibToolsClass ui;
 	//图片路径
@@ -42,6 +42,9 @@ private:
 private:
 	//Mat格式转QImage格式
 	QImage Mat2QImage(const cv::Mat& mat);
+
+	//Mat格式转到QSting格式，方便打印输出
+	QString Mat2QString(const cv::Mat& mat);
 
 	double GetDistance(const cv::Point2f &a, const cv::Point2f &b);
 

@@ -33,6 +33,12 @@
    </layout>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
+   <property name="iconSize">
+    <size>
+     <width>32</width>
+     <height>32</height>
+    </size>
+   </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
    </attribute>
@@ -43,25 +49,51 @@
    <addaction name="actionOpenList"/>
    <addaction name="actionCalibration"/>
    <addaction name="actionStereoCalibrate"/>
+   <addaction name="actionXML"/>
   </widget>
   <action name="actionOpen">
+   <property name="icon">
+    <iconset resource="MyCalibTools.qrc">
+     <normaloff>:/MyCalibTools/resource/Hopstarter-Scrap-Folder-Open.ico</normaloff>:/MyCalibTools/resource/Hopstarter-Scrap-Folder-Open.ico</iconset>
+   </property>
    <property name="text">
     <string>Open</string>
    </property>
   </action>
   <action name="actionOpenList">
+   <property name="icon">
+    <iconset resource="MyCalibTools.qrc">
+     <normaloff>:/MyCalibTools/resource/Hopstarter-Scrap-My-Documents.ico</normaloff>:/MyCalibTools/resource/Hopstarter-Scrap-My-Documents.ico</iconset>
+   </property>
    <property name="text">
     <string>OpenList</string>
    </property>
   </action>
   <action name="actionCalibration">
+   <property name="icon">
+    <iconset resource="MyCalibTools.qrc">
+     <normaloff>:/MyCalibTools/resource/letter uppercase C.ico</normaloff>:/MyCalibTools/resource/letter uppercase C.ico</iconset>
+   </property>
    <property name="text">
     <string>Calibration</string>
    </property>
   </action>
   <action name="actionStereoCalibrate">
+   <property name="icon">
+    <iconset resource="MyCalibTools.qrc">
+     <normaloff>:/MyCalibTools/resource/letter uppercase S.ico</normaloff>:/MyCalibTools/resource/letter uppercase S.ico</iconset>
+   </property>
    <property name="text">
     <string>StereoCalibrate</string>
+   </property>
+  </action>
+  <action name="actionXML">
+   <property name="icon">
+    <iconset resource="MyCalibTools.qrc">
+     <normaloff>:/MyCalibTools/resource/xml-icon.png</normaloff>:/MyCalibTools/resource/xml-icon.png</iconset>
+   </property>
+   <property name="text">
+    <string>XML</string>
    </property>
   </action>
  </widget>
