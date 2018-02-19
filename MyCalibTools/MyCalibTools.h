@@ -39,6 +39,14 @@ private:
 	std::vector<cv::Mat> m_T_;
 	std::vector<double> m_errors_;
 
+	//立体视觉标定参数
+	cv::Mat matrix_1;
+	cv::Mat dist_1;
+	cv::Mat matrix_2;
+	cv::Mat dist_2;
+	cv::Mat R, T, E, F;
+	bool m_stereo_finished;
+
 private:
 	//Mat格式转QImage格式
 	QImage Mat2QImage(const cv::Mat& mat);

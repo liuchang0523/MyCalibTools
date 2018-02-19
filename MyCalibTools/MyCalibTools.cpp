@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QtCore\qxmlstream.h>
 #include <QtCore\QProcess>
+#include <opencv2\core\mat.hpp>
 
 MyCalibTools::MyCalibTools(QWidget *parent)
 	: QMainWindow(parent)
@@ -12,6 +13,7 @@ MyCalibTools::MyCalibTools(QWidget *parent)
 	ui.setupUi(this);
 	this->move(1920, 0);
 	this->setWindowState(Qt::WindowMaximized);
+	m_stereo_finished = false;
 	m_parent_path_ = ".";
 	m_image_num = 0;
 }
@@ -411,7 +413,6 @@ void MyCalibTools::on_actionOpenList_triggered()
 		m_points_on_world_.push_back(centers_world_3d);
 	}
 	QApplication::restoreOverrideCursor();
-	qDebug() << "finished";
 }
 
 void MyCalibTools::on_actionCalibration_triggered()
@@ -450,8 +451,8 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 	points_on_image_1 = m_points_on_image_;
 	//左相机单目标定
 	on_actionCalibration_triggered();
-	cv::Mat matrix_1 = m_matrix_;
-	cv::Mat dist_1 = m_distortion_;
+	matrix_1 = m_matrix_;
+	dist_1 = m_distortion_;
 
 	on_actionOpenList_triggered();
 	points_on_image_2 = m_points_on_image_;
@@ -463,10 +464,9 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 		return;
 	}
 
-	cv::Mat matrix_2 = m_matrix_;
-	cv::Mat dist_2 = m_distortion_;
+	matrix_2 = m_matrix_;
+	dist_2 = m_distortion_;
 
-	cv::Mat R, T, E, F;
 	std::vector<double> errors;
 	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 	double e = cv::stereoCalibrate(points_on_world, points_on_image_1, points_on_image_2,
@@ -479,7 +479,6 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 
 	//////////////////////////////////////////////////////////////////////////
 	//写入xml
-	qDebug() << Mat2QString(R);
 	QFile file("StereoCalibrateResult.xml");
 	if (!file.open(QFile::WriteOnly | QFile::Text))
 	{
@@ -500,6 +499,55 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 	file.close();
 
 	QApplication::restoreOverrideCursor();
+	//标定成功
+	m_stereo_finished = true;
+
+
+
+	//////////////////////////////////////////////////////////////////////////
+	//标定结果验证
+// 	cv::Mat lines_1, lines_2;
+// 	cv::undistortPoints(points_on_image_1[0], points_on_image_1[0], matrix_1, dist_1, cv::noArray(), matrix_1);
+// 	cv::undistortPoints(points_on_image_2[0], points_on_image_2[0], matrix_2, dist_2, cv::noArray(), matrix_2);
+// 	cv::computeCorrespondEpilines(points_on_image_1[0], 1, F, lines_1);
+// 	cv::computeCorrespondEpilines(points_on_image_2[0], 2, F, lines_2);
+// 	double avg_err = 0;
+	// 	for (int i = 0; i < points_on_image_1[0].size(); ++i)
+	// 	{
+	// 		double err = fabs(points_on_image_1[0][i].x)
+	// 	}
+	cv::Mat R_1(3, 3, CV_64F), R_2(3, 3, CV_64F);
+	cv::Mat P_1(3, 4, CV_64F), P_2(3, 4, CV_64F);
+	cv::Mat Q(4, 4, CV_64F);
+	cv::Size new_size(m_image_source_.size().height * 2, m_image_source_.size().width * 2);
+	cv::Rect roi1;
+	cv::Rect roi2;
+	//极限矫正
+	cv::stereoRectify(matrix_1, dist_1, matrix_2, dist_2, m_image_source_.size(),
+		R, T, R_1, R_2, P_1, P_2, Q, cv::CALIB_ZERO_DISPARITY, 1, new_size, &roi1, &roi2);
+
+	//计算矫正后的Map
+	cv::Mat mx1(m_image_source_.size(), CV_32F);
+	cv::Mat my1(m_image_source_.size(), CV_32F);
+	cv::Mat mx2(m_image_source_.size(), CV_32F);
+	cv::Mat my2(m_image_source_.size(), CV_32F);
+
+	cv::initUndistortRectifyMap(matrix_1, dist_1, R_1, P_1, new_size, CV_32FC1, mx1, my1);
+	cv::initUndistortRectifyMap(matrix_2, dist_2, R_2, P_2, new_size, CV_32FC1, mx2, my2);
+
+	//读取图片
+	cv::Mat imageL = cv::imread("L1.bmp");
+	cv::Mat imageR = cv::imread("R1.jpg");
+	cv::Mat imageLr, imageRr;
+	cv::remap(imageL, imageLr, mx1, my1, cv::INTER_NEAREST);
+	cv::remap(imageR, imageRr, mx2, my2, cv::INTER_NEAREST);
+	cv::Mat imageLr_cut, imageRr_cut;
+	//裁剪公共有效区域
+	imageLr_cut = imageLr(roi1);
+	imageRr_cut = imageRr(roi2);
+
+	qDebug() << "pause";
+	//////////////////////////////////////////////////////////////////////////
 }
 
 
