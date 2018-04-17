@@ -11,6 +11,7 @@ MyImageWidget::MyImageWidget(QWidget *parent)
 void MyImageWidget::setImage(const QImage &image)
 {
 	m_srcImage = QPixmap::fromImage(image);
+	m_srcImage = m_srcImage.scaled(m_srcImage.width() / 2, m_srcImage.height() / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 	QString fmtSizeString;
 	fmtSizeString = QString::number(image.size().width()) + QStringLiteral(" × ")
 		+ QString::number(image.size().height()) + "    " + Format2QString(image.format());

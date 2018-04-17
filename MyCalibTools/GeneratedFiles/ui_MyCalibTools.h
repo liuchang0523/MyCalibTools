@@ -30,6 +30,8 @@ public:
     QAction *actionCalibration;
     QAction *actionStereoCalibrate;
     QAction *actionXML;
+    QAction *actionMatching;
+    QAction *actionLoadAndMatching;
     QWidget *centralWidget;
     QGridLayout *gridLayout;
     MyImageWidget *widget;
@@ -65,6 +67,10 @@ public:
         QIcon icon4;
         icon4.addFile(QStringLiteral(":/MyCalibTools/resource/xml-icon.png"), QSize(), QIcon::Normal, QIcon::Off);
         actionXML->setIcon(icon4);
+        actionMatching = new QAction(MyCalibToolsClass);
+        actionMatching->setObjectName(QStringLiteral("actionMatching"));
+        actionLoadAndMatching = new QAction(MyCalibToolsClass);
+        actionLoadAndMatching->setObjectName(QStringLiteral("actionLoadAndMatching"));
         centralWidget = new QWidget(MyCalibToolsClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         gridLayout = new QGridLayout(centralWidget);
@@ -80,7 +86,7 @@ public:
         MyCalibToolsClass->setCentralWidget(centralWidget);
         mainToolBar = new QToolBar(MyCalibToolsClass);
         mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
-        mainToolBar->setIconSize(QSize(32, 32));
+        mainToolBar->setIconSize(QSize(48, 48));
         MyCalibToolsClass->addToolBar(Qt::TopToolBarArea, mainToolBar);
 
         mainToolBar->addAction(actionOpen);
@@ -102,6 +108,8 @@ public:
         actionCalibration->setText(QApplication::translate("MyCalibToolsClass", "Calibration", Q_NULLPTR));
         actionStereoCalibrate->setText(QApplication::translate("MyCalibToolsClass", "StereoCalibrate", Q_NULLPTR));
         actionXML->setText(QApplication::translate("MyCalibToolsClass", "XML", Q_NULLPTR));
+        actionMatching->setText(QApplication::translate("MyCalibToolsClass", "Matching", Q_NULLPTR));
+        actionLoadAndMatching->setText(QApplication::translate("MyCalibToolsClass", "LoadAndMatching", Q_NULLPTR));
     } // retranslateUi
 
 };

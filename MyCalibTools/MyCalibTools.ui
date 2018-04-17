@@ -35,8 +35,8 @@
   <widget class="QToolBar" name="mainToolBar">
    <property name="iconSize">
     <size>
-     <width>32</width>
-     <height>32</height>
+     <width>48</width>
+     <height>48</height>
     </size>
    </property>
    <attribute name="toolBarArea">
@@ -94,6 +94,16 @@
    </property>
    <property name="text">
     <string>XML</string>
+   </property>
+  </action>
+  <action name="actionMatching">
+   <property name="text">
+    <string>Matching</string>
+   </property>
+  </action>
+  <action name="actionLoadAndMatching">
+   <property name="text">
+    <string>LoadAndMatching</string>
    </property>
   </action>
  </widget>

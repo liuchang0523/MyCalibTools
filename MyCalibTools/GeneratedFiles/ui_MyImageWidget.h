@@ -73,6 +73,7 @@ public:
         labelImage->setCursor(QCursor(Qt::CrossCursor));
         labelImage->setMouseTracking(true);
         labelImage->setContextMenuPolicy(Qt::DefaultContextMenu);
+        labelImage->setScaledContents(true);
         labelImage->setAlignment(Qt::AlignCenter);
 
         gridLayout->addWidget(labelImage, 1, 0, 1, 1);

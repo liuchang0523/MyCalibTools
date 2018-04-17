@@ -7,6 +7,23 @@
 #include <QtCore\QProcess>
 #include <opencv2\core\mat.hpp>
 
+static void saveXYZ(const char* filename, const cv::Mat& mat)
+{
+	const double max_z = 1.0e4;
+	FILE* fp = fopen(filename, "wt");
+	for (int y = 0; y < mat.rows; y++)
+	{
+		for (int x = 0; x < mat.cols; x++)
+		{
+			cv::Vec3f point = mat.at<cv::Vec3f>(y, x);
+			if (fabs(point[2] - max_z) < FLT_EPSILON || fabs(point[2]) > max_z) continue;
+			fprintf(fp, "%f %f %f\n", point[0], point[1], point[2]);
+		}
+	}
+	fclose(fp);
+}
+
+
 MyCalibTools::MyCalibTools(QWidget *parent)
 	: QMainWindow(parent)
 {
@@ -15,7 +32,7 @@ MyCalibTools::MyCalibTools(QWidget *parent)
 	this->setWindowState(Qt::WindowMaximized);
 	m_stereo_finished = false;
 	m_parent_path_ = ".";
-	m_image_num = 0;
+	//on_actionLoadAndMatching_triggered();
 }
 
 void MyCalibTools::on_actionOpen_triggered()
@@ -37,7 +54,7 @@ void MyCalibTools::on_actionOpen_triggered()
 	cv::cvtColor(m_image_source_, m_image_gray_, CV_BGR2GRAY);
 	GaussianBlur(m_image_gray_, m_image_gray_, cv::Size(3, 3), 0);
 	cv::Mat m_image_canny_;
-	cv::Canny(m_image_gray_, m_image_canny_, 100, 300);
+	cv::Canny(m_image_gray_, m_image_canny_, 30, 100);
 	cv::imwrite("canny.bmp", m_image_canny_);
 	std::vector <std::vector<cv::Point>> m_contours_;//边界
 	//获取边界
@@ -50,6 +67,7 @@ void MyCalibTools::on_actionOpen_triggered()
 			cv::drawContours(m_image_canny_, m_contours_, i, cv::Scalar(0));
 		}
 		cv::findContours(m_image_canny_, m_contours_, cv::RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+		qDebug() << QStringLiteral("去除边界");
 	}
 	int sum = 0;
 	std::vector <std::vector<cv::Point>> contours_temp;//边界
@@ -155,7 +173,6 @@ void MyCalibTools::on_actionOpen_triggered()
 		3, cv::Scalar(0, 0, 255), 5);
 #endif
 
-
 	std::vector<cv::Point2f> centers_big_sorted;
 	centers_big_sorted.push_back(center_big_1);
 	centers_big_sorted.push_back(center_big_2);
@@ -210,15 +227,10 @@ void MyCalibTools::on_actionOpen_triggered()
 
 	for (int i = 0; i < centers_sorted.size(); ++i)
 	{
-		cv::circle(m_image_source_, centers_sorted[i], 3, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
+		cv::circle(m_image_source_, centers_sorted[i], 5, cv::Scalar(0, 0, 255), -1, cv::LINE_AA);
 	}
 
 	cv::imwrite("center.bmp", m_image_source_);
-
-	// 	std::string image_name = std::to_string(m_image_num);
-	// 	image_name += ".bmp";
-	// 	cv::imwrite(image_name, m_image_source_);
-	//m_image_num++;
 	ui.widget->setImage(Mat2QImage(m_image_source_));
 
 }
@@ -253,7 +265,7 @@ void MyCalibTools::on_actionOpenList_triggered()
 		cv::cvtColor(m_image_source_, m_image_gray_, CV_BGR2GRAY);
 		GaussianBlur(m_image_gray_, m_image_gray_, cv::Size(3, 3), 0);
 		cv::Mat m_image_canny_;
-		cv::Canny(m_image_gray_, m_image_canny_, 100, 300);
+		cv::Canny(m_image_gray_, m_image_canny_, 30, 100);
 		std::vector <std::vector<cv::Point>> m_contours_;//边界
 														 //获取边界
 		cv::findContours(m_image_canny_, m_contours_, cv::RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
@@ -274,7 +286,7 @@ void MyCalibTools::on_actionOpenList_triggered()
 			if (m_contours_[i].size() < 1000)
 			{
 				cv::Point2f center;
-				if (isCircle(m_contours_[i], center, 30.0))//圆度阈值
+				if (isCircle(m_contours_[i], center, 15.0))//圆度阈值
 				{
 					sum += m_contours_[i].size();
 					contours_temp.push_back(m_contours_[i]);
@@ -299,7 +311,7 @@ void MyCalibTools::on_actionOpenList_triggered()
 		}
 		if (centers_big.size() != 3)
 		{
-			QMessageBox::warning(this, QStringLiteral("大圆数目有误！"), QStringLiteral("大圆数目有误！%1").arg(k));
+			QMessageBox::warning(this, QStringLiteral("大圆数目有误！"), QStringLiteral("大圆数目有误！%1").arg(m_image_list_[k]));
 			continue;
 		}
 
@@ -417,10 +429,10 @@ void MyCalibTools::on_actionOpenList_triggered()
 
 void MyCalibTools::on_actionCalibration_triggered()
 {
-	if (m_points_on_image_.size() < 5)
-	{
-		return;
-	}
+	// 	if (m_points_on_image_.size() < 5)
+	// 	{
+	// 		return;
+	// 	}
 	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
 
 	m_matrix_ = cv::Mat(3, 3, CV_32FC1, cv::Scalar::all(0));
@@ -444,6 +456,7 @@ void MyCalibTools::on_actionCalibration_triggered()
 
 void MyCalibTools::on_actionStereoCalibrate_triggered()
 {
+#if 1 // 打开图片进行标定
 	std::vector<std::vector<cv::Point2f>> points_on_image_1;
 	std::vector<std::vector<cv::Point2f>> points_on_image_2;
 	std::vector<std::vector<cv::Point3f>> points_on_world;
@@ -488,6 +501,7 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 	QXmlStreamWriter stream(&file);
 	stream.setAutoFormatting(true);
 	stream.writeStartDocument();
+	stream.writeStartElement("calibration_result");
 	stream.writeTextElement("matrix_1", Mat2QString(matrix_1));
 	stream.writeTextElement("distortion_1", Mat2QString(dist_1));
 	stream.writeTextElement("matrix_2", Mat2QString(matrix_2));
@@ -496,11 +510,16 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 	stream.writeTextElement("T", Mat2QString(T));
 	stream.writeTextElement("e", QString::number(e, 'g', 10));
 	stream.writeEndElement();
+	stream.writeEndElement();
 	file.close();
 
 	QApplication::restoreOverrideCursor();
 	//标定成功
 	m_stereo_finished = true;
+#else
+	m_image_source_ = cv::imread("L1.bmp");
+	XML2Mat("StereoCalibrateResult.xml");
+#endif
 
 
 
@@ -519,7 +538,7 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 	cv::Mat R_1(3, 3, CV_64F), R_2(3, 3, CV_64F);
 	cv::Mat P_1(3, 4, CV_64F), P_2(3, 4, CV_64F);
 	cv::Mat Q(4, 4, CV_64F);
-	cv::Size new_size(m_image_source_.size().height * 2, m_image_source_.size().width * 2);
+	cv::Size new_size(m_image_source_.size().width * 2, m_image_source_.size().height * 2);
 	cv::Rect roi1;
 	cv::Rect roi2;
 	//极限矫正
@@ -536,25 +555,229 @@ void MyCalibTools::on_actionStereoCalibrate_triggered()
 	cv::initUndistortRectifyMap(matrix_2, dist_2, R_2, P_2, new_size, CV_32FC1, mx2, my2);
 
 	//读取图片
-	cv::Mat imageL = cv::imread("L1.bmp");
-	cv::Mat imageR = cv::imread("R1.jpg");
+	cv::Mat imageL = cv::imread("L2.bmp");
+	cv::Mat imageR = cv::imread("R2.bmp");
 	cv::Mat imageLr, imageRr;
-	cv::remap(imageL, imageLr, mx1, my1, cv::INTER_NEAREST);
-	cv::remap(imageR, imageRr, mx2, my2, cv::INTER_NEAREST);
+	cv::remap(imageL, imageLr, mx1, my1, cv::INTER_CUBIC);
+	cv::remap(imageR, imageRr, mx2, my2, cv::INTER_CUBIC);
+	//cv::rectangle(imageLr, roi1, cv::Scalar(0, 0, 255), 3);
+	//cv::rectangle(imageRr, roi2, cv::Scalar(0, 0, 255), 3);
+
+	//提取公共有效区域
+	int y_max = cv::max(roi1.y, roi2.y);
+	int width_min = cv::min(roi1.width, roi2.width);
+	int height_min = cv::min(roi1.y + roi1.height - y_max,
+		roi2.y + roi2.height - y_max);
+	cv::Rect roi1r(roi1.x, y_max, width_min, height_min);
+	cv::Rect roi2r(roi2.x, y_max, width_min, height_min);
+
+	cv::rectangle(imageLr, roi1r, cv::Scalar(0, 0, 255), 5);
+	cv::rectangle(imageRr, roi2r, cv::Scalar(0, 0, 255), 5);
+
+	cv::imwrite("imageLr.bmp", imageLr);
+	cv::imwrite("imageRr.bmp", imageRr);
+
 	cv::Mat imageLr_cut, imageRr_cut;
 	//裁剪公共有效区域
-	imageLr_cut = imageLr(roi1);
-	imageRr_cut = imageRr(roi2);
+	imageLr_cut = imageLr(roi1r);
+	imageRr_cut = imageRr(roi2r);
 
-	qDebug() << "pause";
+	//cv::imwrite("L1r.bmp", imageLr_cut);
+	//cv::imwrite("R1r.bmp", imageRr_cut);
+
+	QMessageBox::about(this, QStringLiteral("极线矫正完毕！"), QStringLiteral("极线矫正完毕！"));
 	//////////////////////////////////////////////////////////////////////////
 }
 
+
+void MyCalibTools::on_actionMatching_triggered()
+{
+	//读取极线矫正后图像
+	cv::Mat img1 = cv::imread("L1r.bmp", 0);
+	cv::Mat img2 = cv::imread("R1r.bmp", 0);
+
+	cv::Mat disparity;
+#if 0 //BM算法
+	cv::Ptr<cv::StereoBM> bm = cv::StereoBM::create(256, 11);
+	bm->setPreFilterType(CV_STEREO_BM_NORMALIZED_RESPONSE);
+	bm->setPreFilterSize(9);
+	bm->setPreFilterCap(31);
+	bm->setUniquenessRatio(1);
+	bm->setMinDisparity(-256);
+	bm->compute(img1, img2, disparity);
+#endif
+	cv::Mat valid;
+	MyFindCorrespondence(img1, img2, disparity, valid);
+
+	// 	cv::Ptr<cv::StereoSGBM> sgbm = cv::StereoSGBM::create(0, 128, 11, 8 * 11 * 11, 32 * 11 * 11);
+	// 	sgbm->setDisp12MaxDiff(1);
+	// 	sgbm->setUniquenessRatio(10);
+	// 	sgbm->setSpeckleWindowSize(100);
+	// 	sgbm->setSpeckleRange(32);
+	// 	sgbm->setMode(cv::StereoSGBM::MODE_SGBM);
+	// 	sgbm->compute(img1, img2, disparity);
+	valid.convertTo(valid, CV_8U, 255);
+	disparity.convertTo(disparity, CV_32F, 1.0 / 16);//转换为可视化的视差图
+	cv::normalize(disparity, disparity, 0, 256, cv::NORM_MINMAX);
+}
+
+void MyCalibTools::on_actionLoadAndMatching_triggered()
+{
+
+	m_image_list_ = QFileDialog::getOpenFileNames(this, QStringLiteral("打开两张图片文件，先L后R"), m_parent_path_, "Image(*.bmp *.png *.jpg)");
+	if (m_image_list_.size() != 2)
+	{
+		QMessageBox::warning(this, QStringLiteral("打开图片数目有误"), QStringLiteral("打开图片数目有误"));
+		return;
+	}
+	//////////////////////////////////////////////////////////////////////////
+	//记录上级目录
+	QDir dir_temp(m_image_list_[0]);
+	dir_temp.cdUp();
+	m_parent_path_ = dir_temp.absolutePath();
+	//////////////////////////////////////////////////////////////////////////
+
+	QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+	//极线矫正
+	m_image_source_ = cv::imread("L1.bmp");
+	XML2Mat("StereoCalibrateResult.xml");
+	cv::Mat R_1(3, 3, CV_64F), R_2(3, 3, CV_64F);
+	cv::Mat P_1(3, 4, CV_64F), P_2(3, 4, CV_64F);
+	cv::Mat Q(4, 4, CV_64F);
+	cv::Size new_size(m_image_source_.size().width * 2, m_image_source_.size().height * 2);
+	//cv::Size new_size = m_image_source_.size();
+	cv::Rect roi1;
+	cv::Rect roi2;
+	//极限矫正
+	cv::stereoRectify(matrix_1, dist_1, matrix_2, dist_2, m_image_source_.size(),
+		R, T, R_1, R_2, P_1, P_2, Q, cv::CALIB_ZERO_DISPARITY, -1, new_size, &roi1, &roi2);
+
+	//计算矫正后的Map
+	cv::Mat mx1(m_image_source_.size(), CV_32F);
+	cv::Mat my1(m_image_source_.size(), CV_32F);
+	cv::Mat mx2(m_image_source_.size(), CV_32F);
+	cv::Mat my2(m_image_source_.size(), CV_32F);
+	cv::initUndistortRectifyMap(matrix_1, dist_1, R_1, P_1, new_size, CV_32FC1, mx1, my1);
+	cv::initUndistortRectifyMap(matrix_2, dist_2, R_2, P_2, new_size, CV_32FC1, mx2, my2);
+
+	//读取图片
+	cv::Mat imageL = cv::imread(std::string(m_image_list_[0].toLocal8Bit()));
+	cv::Mat imageR = cv::imread(std::string(m_image_list_[1].toLocal8Bit()));
+	cv::Mat imageLr, imageRr;
+	cv::remap(imageL, imageLr, mx1, my1, cv::INTER_CUBIC);
+	cv::remap(imageR, imageRr, mx2, my2, cv::INTER_CUBIC);
+	//cv::rectangle(imageLr, roi1, cv::Scalar(0, 0, 255), 3);
+	//cv::rectangle(imageRr, roi2, cv::Scalar(0, 0, 255), 3);
+
+	//提取公共有效区域
+	int y_max = cv::max(roi1.y, roi2.y);
+	int width_min = cv::min(roi1.width, roi2.width);
+	int height_min = cv::min(roi1.y + roi1.height - y_max,
+		roi2.y + roi2.height - y_max);
+	cv::Rect roi1r(roi1.x, y_max, width_min, height_min);
+	cv::Rect roi2r(roi2.x, y_max, width_min, height_min);
+
+	int dis = roi1.x - roi2.x;
+
+	//cv::rectangle(imageLr, roi1r, cv::Scalar(0, 255, 0), 3);
+	//cv::rectangle(imageRr, roi2r, cv::Scalar(0, 255, 0), 3);
+
+	cv::Mat imageLr_cut, imageRr_cut;
+	//裁剪公共有效区域
+	imageLr_cut = imageLr(roi1r);
+	imageRr_cut = imageRr(roi2r);
+
+	cv::imwrite("imageLr.bmp", imageLr_cut);
+	cv::imwrite("imageRr.bmp", imageRr_cut);
+
+	//////////////////////////////////////////////////////////////////////////
+
+	//读取极线矫正后图像
+	cv::Mat img1;
+	cv::Mat img2;
+	cv::cvtColor(imageLr_cut, img1, CV_BGR2GRAY);
+	cv::cvtColor(imageRr_cut, img2, CV_BGR2GRAY);
+
+
+	cv::Mat disparity;
+	cv::Mat disparity_2;
+#if 0 //BM算法
+	int minDisparity = -128;
+	//第一遍，从右边图像中找左边图像的对应点
+	cv::Ptr<cv::StereoBM> bm = cv::StereoBM::create(14 * 16, 21);
+	bm->setPreFilterType(CV_STEREO_BM_BASIC);
+	bm->setMinDisparity(minDisparity);
+	bm->compute(img1, img2, disparity);
+	//第二遍，从左边图像中找右边图像的对应点
+	bm->setMinDisparity(-(14 * 16 + minDisparity));
+	bm->compute(img2, img1, disparity_2);
+	disparity.convertTo(disparity, CV_32F);
+	disparity_2.convertTo(disparity_2, CV_32F);
+	//遍历
+	cv::Mat valid(disparity.size(), CV_8U, cv::Scalar(0));
+	for (int i = 0; i < disparity.rows; ++i)
+	{
+		float* ptr = disparity.ptr<float>(i);
+		float* ptr_2 = disparity_2.ptr<float>(i);
+		uchar* v_ptr = valid.ptr<uchar>(i);
+		for (int j = 0; j < disparity.cols; ++j)
+		{
+			if (ptr[j] <= -128 * 16 || ptr[j] >= 1536 || _isnanf(ptr[j]))
+			{
+				continue;
+			}
+			float left_right = ptr[j] / 16.0;
+			float right_left = ptr_2[j - int(left_right)];
+			if (abs(left_right - right_left < 1.0))
+			{
+				v_ptr[j] = 255;
+			}
+		}
+	}
+#endif
+	cv::Mat valid;
+	MyFindCorrespondence(img1, img2, disparity, valid);
+
+	disparity.convertTo(disparity, CV_32F);
+	cv::Mat xyz;
+	reconstruct3D(disparity, Q, dis * 16, -128, roi1r.tl(), valid, xyz);
+	saveXYZ("result.xyz", xyz);
+
+	//disparity.convertTo(disparity, CV_32F, 1.0 / 16);//转换为可视化的视差图	
+	//cv::Mat disparity_all(new_size, disparity.type());
+
+// 	cv::Mat PL(img1.size(), CV_8UC1, cv::Scalar(1));
+// 	cv::Mat PR(img2.size(), CV_8UC1, cv::Scalar(1));
+// 	cv::Mat PP(img2.size(), CV_8UC1, cv::Scalar(0));
+// 	cv::Mat PU;
+// 	findCorrespondence(img1, img2, PL, PR, PU, PP);
+
+	//cv::Mat xyz;
+
+	//cv::reprojectImageTo3D(disparity, xyz, Q, false);
+	//disparity.convertTo(disparity, CV_32F);//转换为可视化的视差图
+	//reconstruct3D(disparity, xyz, Q);
+	//saveXYZ("result.xyz", xyz);
+
+	disparity.convertTo(disparity, CV_32F);//转换为可视化的视差图
+	//cv::Mat disparity_cut(disparity(roi1r));
+	cv::normalize(disparity, disparity, 0, 1, cv::NORM_MINMAX);
+	cv::imwrite("disparity.bmp", disparity);
+
+
+
+
+	disparity.convertTo(disparity, CV_8UC1, 255);
+	ui.widget->setImage(Mat2QImage(disparity));
+	QApplication::restoreOverrideCursor();
+}
 
 void MyCalibTools::on_actionXML_triggered()
 {
 	QProcess::execute("explorer StereoCalibrateResult.xml");
 }
+
+
 
 QImage MyCalibTools::Mat2QImage(const cv::Mat& mat)
 {
@@ -707,4 +930,462 @@ bool MyCalibTools::isCircle(const std::vector<cv::Point> &contours, cv::Point2f 
 		}
 	}
 	return false;
+}
+
+cv::Mat MyCalibTools::readFromXML(const QString &str, QXmlStreamReader &reader)
+{
+	std::vector<double> vec;
+	cv::Mat result;
+	// 如果没有读到文档结尾，而且没有出现错误
+	while (!reader.atEnd()) {
+		// 读取下一个记号，它返回记号的类型
+		QXmlStreamReader::TokenType type = reader.readNext();
+		if (type == QXmlStreamReader::StartElement) {
+			//qDebug() << "<" << reader.name() << ">";
+			if (reader.name() == str)
+			{
+				type = reader.readNext();
+				int row;
+				if (type == QXmlStreamReader::Characters
+					&& !reader.isWhitespace())
+				{
+					//qDebug() << reader.text();
+					QString text(reader.text().toUtf8());
+					row = text.count("\n") - 1;
+					int start = 1;
+					int index = text.indexOf("\n", start);
+					while (index > 0)
+					{
+						QString temp_row(text.mid(start, index - start));
+						//	qDebug() << temp_row;
+						int col = temp_row.count(" ") + 1;
+						QStringList list = temp_row.split(" ");
+						for (int i = 0; i < list.size(); ++i)
+						{
+							vec.push_back(list.at(i).toDouble());
+						}
+						start = index + 1;
+						index = text.indexOf("\n", start);
+					}
+				}
+				result = cv::Mat(vec);
+				result = result.reshape(0, row);
+				result = result.clone();//深拷贝
+				return result;
+			}
+		}
+	}
+	// 如果读取过程中出现错误，那么输出错误信息
+	if (reader.hasError()) {
+		qDebug() << "error: " << reader.errorString();
+	}
+
+	return result;
+}
+
+void MyCalibTools::XML2Mat(const QString &filename)
+{
+	QFile file(filename);
+	if (!file.open(QFile::ReadOnly | QFile::Text))
+	{
+		qDebug() << "Error: cannot open file";
+		return;
+	}
+	QXmlStreamReader reader;
+	// 设置文件，这时会将流设置为初始状态
+	reader.setDevice(&file);
+	matrix_1 = readFromXML("matrix_1", reader);
+	dist_1 = readFromXML("distortion_1", reader);
+	matrix_2 = readFromXML("matrix_2", reader);
+	dist_2 = readFromXML("distortion_2", reader);
+	R = readFromXML("R", reader);
+	T = readFromXML("T", reader);
+	file.close();
+}
+
+void MyCalibTools::findCorrespondence(const cv::Mat& imageL, const cv::Mat& imageR, const cv::Mat& PL, const cv::Mat& PR, cv::Mat& PU, cv::Mat& PP)
+{
+	int row = imageL.rows;
+	int col = imageL.cols;
+
+	CV_Assert(row > 0 && col > 0);
+	CV_Assert(imageL.rows == imageR.rows && imageL.cols == imageR.cols);
+	CV_Assert(PL.rows == imageL.rows && PL.cols == imageL.cols);
+	CV_Assert(PL.rows == PR.rows && PL.cols == PR.cols);
+
+	if (PU.cols != col || PU.rows != row)
+	{
+		PU = cv::Mat::zeros(row, col, CV_32S);
+	}
+
+	if (PP.cols != col || PP.rows != row)
+	{
+		PP = cv::Mat::zeros(row, col, CV_8U);
+	}
+
+	int mCHW = 6;
+	int mCHW2 = 13;
+	int mStep = 1;
+	int mMinDisparity = -128;
+	int mMaxDisparity = 128;
+	float mNCCThresh = 0.7;
+
+
+	int startRow = mCHW;
+	int endRow = row - mCHW;
+	int startCol = mCHW;
+	int endCol = col - mCHW;
+
+	double* averageDiffL = new double[mCHW2*mCHW2];
+
+	for (int i = startRow; i < endRow; i += mStep)
+	{
+		for (int j = startCol; j < endCol; j += mStep)
+		{
+			//left image
+			if (PL.type() == CV_8U)
+			{
+				if (PL.at<uint8_t>(i, j) == 0)
+				{
+					continue;
+				}
+			}
+			else if (PL.type() == CV_32S)
+			{
+				if (PL.at<int32_t>(i, j) == 0)
+				{
+					continue;
+				}
+			}
+
+			double averageL = 0.0;
+
+			double averageDiffSquareL = 0.0;
+
+			for (int k = i - mCHW; k <= i + mCHW; k++)
+			{
+				for (int n = j - mCHW; n <= j + mCHW; n++)
+				{
+					if (imageL.type() == CV_8U)
+					{
+						averageL += imageL.at<uint8_t>(k, n);
+					}
+					else if (imageL.type() == CV_32F)
+					{
+						averageL += imageL.at<float>(k, n);
+					}
+				}
+			}
+
+			averageL /= mCHW2 * mCHW2;
+
+			for (int k = i - mCHW; k <= i + mCHW; k++)
+			{
+				for (int n = j - mCHW; n <= j + mCHW; n++)
+				{
+					int m = k - (i - mCHW);
+					int l = n - (j - mCHW);
+					int index = m * mCHW2 + l;
+
+					double diff = 0.0;
+					if (imageL.type() == CV_8U)
+					{
+						diff = imageL.at<uint8_t>(k, n) - averageL;
+					}
+					else if (imageL.type() == CV_32F)
+					{
+						diff = imageL.at<float>(k, n) - averageL;
+					}
+
+					averageDiffL[index] = diff;
+
+					averageDiffSquareL += diff * diff;
+				}
+			}
+
+			//right image
+			int32_t minR = j - mMaxDisparity;
+			int32_t maxR = j - mMinDisparity;
+
+			minR = minR < mCHW ? mCHW : minR;
+			maxR = maxR > col - mCHW - 1 ? col - mCHW - 1 : maxR;
+
+			double ZNCC = 0.0;
+			int currentUR = 0;
+
+			for (int loop = minR; loop < maxR; loop++)
+			{
+				int uR = loop;
+				if (PR.type() == CV_8U)
+				{
+					if (PR.at<uint8_t>(i, uR) == 0)
+					{
+						continue;
+					}
+				}
+				else if (PR.type() == CV_32S)
+				{
+					if (PR.at<int32_t>(i, uR) == 0)
+					{
+						continue;
+					}
+				}
+
+				if (imageL.type() == CV_8U)//灰度约束
+				{
+					if (abs(imageL.at<uint8_t>(i, j) - imageR.at<uint8_t>(i, uR)) > 25)
+						continue;
+				}
+				else if (imageL.type() == CV_32F)
+				{
+					if (abs(imageL.at<float>(i, j) - imageR.at<float>(i, uR)) > 25)
+						continue;
+				}
+
+				double averageR = 0.0;
+
+				double averageDiffSquareR = 0.0;
+
+				for (int k = i - mCHW; k <= i + mCHW; k++)
+				{
+					for (int n = uR - mCHW; n <= uR + mCHW; n++)
+					{
+						if (imageR.type() == CV_8U)
+						{
+							averageR += imageR.at<uint8_t>(k, n);
+						}
+						else if (imageR.type() == CV_32F)
+						{
+							averageR += imageR.at<float>(k, n);
+						}
+					}
+				}
+
+				averageR /= mCHW2 * mCHW2;
+
+				double averDiffSum = 0.0;
+
+				for (int k = i - mCHW; k <= i + mCHW; k++)
+				{
+					for (int n = uR - mCHW; n <= uR + mCHW; n++)
+					{
+						int m = k - (i - mCHW);
+						int l = n - (uR - mCHW);
+						int index = m * mCHW2 + l;
+
+						double diff = 0.0;
+						if (imageR.type() == CV_8U)
+						{
+							diff = imageR.at<uint8_t>(k, n) - averageR;
+						}
+						else if (imageR.type() == CV_32F)
+						{
+							diff = imageR.at<float>(k, n) - averageR;
+						}
+
+						averDiffSum += averageDiffL[index] * diff;
+
+						averageDiffSquareR += diff * diff;
+					}
+				}
+
+				if (averageDiffSquareL < 1e-6 || averageDiffSquareR < 1e-6)
+					continue;
+
+				double zncc = averDiffSum / sqrt(averageDiffSquareL*averageDiffSquareR);
+
+				if (zncc > ZNCC)
+				{
+					ZNCC = zncc;
+					currentUR = uR;
+				}
+			}
+
+			if (ZNCC > mNCCThresh)
+			{
+				if (PU.type() == CV_32S)
+				{
+					PU.at<int32_t>(i, j) = j - currentUR;
+				}
+				else if (PU.type() == CV_32F)
+				{
+					PU.at<float>(i, j) = j - currentUR;
+				}
+
+				if (PP.type() == CV_8U)
+				{
+					PP.at<uint8_t>(i, j) = 1;
+				}
+				else if (PP.type() == CV_32S)
+				{
+					PP.at<int32_t>(i, j) = 1;
+				}
+			}
+
+
+		}
+		//std::cout << i << std::endl;
+	}
+
+	delete[] averageDiffL;
+}
+
+
+void MyCalibTools::MyFindCorrespondence(const cv::Mat& imageL, const cv::Mat& imageR, cv::Mat& disparity, cv::Mat& valid)
+{
+	int row = imageL.rows;
+	int col = imageL.cols;
+
+	CV_Assert(row > 0 && col > 0);
+	CV_Assert(imageL.rows == imageR.rows && imageL.cols == imageR.cols);
+
+	//初始化视差图和模版
+	disparity = cv::Mat(row, col, CV_32S, cv::Scalar(-129));
+	valid = cv::Mat::zeros(row, col, CV_8U);
+
+	//设置窗口大小和最大最小视差
+	int window = 21;
+	CV_Assert(window % 2 == 1 && window > 5);
+	//设置搜索步长
+	int step = 4;
+	int min_disparity = -128;
+	int max_disparity = 128;
+	double ZNCC_threshold = 0.7;
+	double* averageDiffL = new double[window*window];
+	int half_window = (window - 1) / 2;
+	//循环遍历
+	for (int i = half_window; i < (row - half_window); i += step)
+	{
+		for (int j = half_window; j < (col - half_window); j += step)
+		{
+			//左图像，**此处可加模版**
+			double avgL = 0.0;
+			double avg_diff_squareL = 0.0;
+			for (int m = i - half_window; m <= i + half_window; ++m)
+			{
+				const uchar* ptr = imageL.ptr<uchar>(m);
+				for (int n = j - half_window; n <= j + half_window; ++n)
+				{
+					avgL += ptr[n];
+				}
+			}
+			//窗口像素均值
+			avgL = avgL / (window*window);
+
+			for (int m = i - half_window; m <= i + half_window; ++m)
+			{
+				const uchar* ptr = imageL.ptr<uchar>(m);
+				for (int n = j - half_window; n <= j + half_window; ++n)
+				{
+					int index = (m - (i - half_window))*window + n - (j - half_window);
+					double diff = ptr[n] - avgL;
+					averageDiffL[index] = diff;
+					avg_diff_squareL += diff * diff;
+				}
+			}
+
+			//右图像
+			int minR = j + min_disparity;
+			int maxR = j + max_disparity;
+
+			minR = minR < half_window ? half_window : minR;
+			maxR = maxR > col - half_window - 1 ? col - half_window - 1 : maxR;
+
+			double ZNCC = 0.0;
+			int correspond = 0;
+
+			for (int r = minR; r < maxR; ++r)
+			{
+				//灰度约束
+				if (abs(imageL.at<uchar>(i, j) - imageR.at<uchar>(i, r)) > 25)
+				{
+					continue;
+				}
+
+				double avgR = 0.0;
+				double avg_diff_squareR = 0.0;
+
+				for (int m = i - half_window; m <= i + half_window; ++m)
+				{
+					const uchar* ptr = imageL.ptr<uchar>(m);
+					for (int n = r - half_window; n <= r + half_window; ++n)
+					{
+						avgR += ptr[n];
+					}
+				}
+
+				avgR = avgR / (window*window);
+
+				double averDiffSum = 0.0;
+
+				for (int m = i - half_window; m <= i + half_window; ++m)
+				{
+					const uchar* ptr = imageL.ptr<uchar>(m);
+					for (int n = r - half_window; n <= r + half_window; ++n)
+					{
+						int index = (m - (i - half_window))*window + n - (r - half_window);
+						double diff = ptr[n] - avgR;
+						averDiffSum += averageDiffL[index] * diff;
+						avg_diff_squareR += diff * diff;
+					}
+				}
+
+				if (avg_diff_squareL < 1e-6 || avg_diff_squareR < 1e-6)
+				{
+					continue;
+				}
+
+				double zncc_temp = averDiffSum / sqrt(avg_diff_squareL*avg_diff_squareR);
+
+				if (zncc_temp > ZNCC)
+				{
+					ZNCC = zncc_temp;
+					correspond = r;
+				}
+			}
+
+			if (ZNCC > ZNCC_threshold)
+			{
+				disparity.at<int32_t>(i, j) = j - correspond;
+				valid.at<uchar>(i, j) = 1;
+			}
+		}
+		std::cout << i << std::endl;
+	}
+	delete[] averageDiffL;
+}
+
+void MyCalibTools::reconstruct3D(const cv::Mat& disparty, const cv::Mat &Q,
+	const int &dis, const int &minDisparity, cv::Point2i &lefttop, const cv::Mat& Mask, cv::Mat& xyz)
+{
+	xyz.create(disparty.size(), CV_32FC3);
+	if (disparty.type() == CV_32F)
+	{
+		for (int i = 0; i < disparty.rows; i += 1)
+		{
+			for (int j = 0; j < disparty.cols; j += 1)
+			{
+
+				if (disparty.at<float>(i, j) <= minDisparity || !Mask.at<uchar>(i, j))
+				{
+					xyz.at<cv::Vec3f>(i, j)[0] = 1.0e4;
+					xyz.at<cv::Vec3f>(i, j)[1] = 1.0e4;
+					xyz.at<cv::Vec3f>(i, j)[2] = 1.0e4;
+					continue;
+				}
+				double w = Q.at<double>(3, 2)*(disparty.at<float>(i, j) * 16 + dis) + Q.at<double>(3, 3);
+				double x = j + lefttop.x + Q.at<double>(0, 3);
+				double y = i + lefttop.y + Q.at<double>(1, 3);
+				double z = Q.at<double>(2, 3);
+
+				xyz.at<cv::Vec3f>(i, j)[0] = x / w;
+				xyz.at<cv::Vec3f>(i, j)[1] = y / w;
+				xyz.at<cv::Vec3f>(i, j)[2] = z / w;
+			}
+		}
+	}
+	else
+	{
+		std::cout << "The type of disparty must be CV_32F" << std::endl;
+	}
 }

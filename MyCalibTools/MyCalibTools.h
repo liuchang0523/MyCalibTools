@@ -5,6 +5,7 @@
 #include <QtWidgets/QMainWindow>
 #include "ui_MyCalibTools.h"
 #include <opencv2/opencv.hpp>
+#include <QtCore\qxmlstream.h>
 
 class MyCalibTools : public QMainWindow
 {
@@ -17,7 +18,10 @@ public:
 	void on_actionOpenList_triggered();
 	void on_actionCalibration_triggered();
 	void on_actionStereoCalibrate_triggered();
+	void on_actionMatching_triggered();
+	void on_actionLoadAndMatching_triggered();
 	void on_actionXML_triggered();
+
 private:
 	Ui::MyCalibToolsClass ui;
 	//图片路径
@@ -25,7 +29,6 @@ private:
 	QStringList m_image_list_;
 	QString m_parent_path_;//记录上一次打开图像的路径
 	cv::Mat m_image_source_;
-	int m_image_num;
 
 	//圆心坐标
 	std::vector<std::vector<cv::Point2f>> m_points_on_image_;
@@ -67,6 +70,18 @@ private:
 
 	//判断是否为圆
 	bool isCircle(const std::vector<cv::Point> &contours, cv::Point2f &center, double maxOffset);
+
+	//从XML文件中读取Mat
+	void XML2Mat(const QString &filename);
+
+	//对应点搜索（旧）
+	void findCorrespondence(const cv::Mat& imageL, const cv::Mat& imageR, const cv::Mat& PL, const cv::Mat& PR, cv::Mat& PU, cv::Mat& PP);
+
+	//对应点搜索
+	void MyFindCorrespondence(const cv::Mat& imageL, const cv::Mat& imageR, cv::Mat& disparity, cv::Mat& valid);
+
+	void reconstruct3D(const cv::Mat& disparity, const cv::Mat &Q, const int &dis, const int &minDisparity, cv::Point2i &lefttop, const cv::Mat& Mask, cv::Mat& xyz);
+	cv::Mat readFromXML(const QString &str, QXmlStreamReader &reader);
 };
 
 
